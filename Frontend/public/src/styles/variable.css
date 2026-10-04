@@ -1,0 +1,15 @@
+:root {
+  --color-primary: #025ffc;
+  --color-primary-soft: #e8f0ff;
+  --color-bg: #f5f8ff;
+  --color-surface: #ffffff;
+  --color-text: #1f2937;
+  --color-muted: #6b7280;
+  --color-border: #e5e7eb;
+  --color-success: #16a34a;
+  --color-warning: #f59e0b;
+  --color-danger: #dc2626;
+  --radius: 10px;
+  --space: 16px;
+  --sidebar-width: 220px;
+}
