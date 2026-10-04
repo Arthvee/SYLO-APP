@@ -118,6 +118,121 @@ const resendVerificationValidator = [
   handleValidationErrors,
 ];
 
+/**
+ * Validation rules for project creation (FR-09)
+ */
+const createProjectValidator = [
+  body('title')
+    .trim()
+    .notEmpty().withMessage('Project title is required')
+    .isLength({ min: 1, max: 120 }).withMessage('Project title must be between 1 and 120 characters'),
+
+  body('description')
+    .optional()
+    .trim()
+    .isLength({ max: 2000 }).withMessage('Description cannot exceed 2000 characters'),
+
+  body('deadline')
+    .optional({ nullable: true })
+    .isISO8601().withMessage('Deadline must be a valid ISO 8601 date string'),
+
+  handleValidationErrors,
+];
+
+/**
+ * Validation rules for project updates (FR-12)
+ */
+const updateProjectValidator = [
+  body('title')
+    .optional()
+    .trim()
+    .isLength({ min: 1, max: 120 }).withMessage('Project title must be between 1 and 120 characters'),
+
+  body('description')
+    .optional()
+    .trim()
+    .isLength({ max: 2000 }).withMessage('Description cannot exceed 2000 characters'),
+
+  body('deadline')
+    .optional({ nullable: true })
+    .isISO8601().withMessage('Deadline must be a valid ISO 8601 date string'),
+
+  handleValidationErrors,
+];
+
+/**
+ * Validation rules for adding collaborators by username (FR-14, BR-16)
+ */
+const addCollaboratorValidator = [
+  body('username')
+    .trim()
+    .notEmpty().withMessage('Username is required')
+    .matches(/^[a-z0-9_-]{3,20}$/).withMessage('Username must be 3-20 characters long and contain only lowercase letters, numbers, hyphens, and underscores')
+    .toLowerCase(),
+
+  handleValidationErrors,
+];
+
+/**
+ * Validation rules for task creation (FR-19, FR-22)
+ */
+const createTaskValidator = [
+  body('title')
+    .trim()
+    .notEmpty().withMessage('Task title is required')
+    .isLength({ min: 1, max: 200 }).withMessage('Task title must be between 1 and 200 characters'),
+
+  body('description')
+    .optional()
+    .trim(),
+
+  body('assignees')
+    .optional()
+    .isArray().withMessage('Assignees must be an array of user IDs'),
+
+  body('deadline')
+    .optional({ nullable: true })
+    .isISO8601().withMessage('Deadline must be a valid ISO 8601 date string'),
+
+  handleValidationErrors,
+];
+
+/**
+ * Validation rules for updating task details (FR-21)
+ */
+const updateTaskValidator = [
+  body('title')
+    .optional()
+    .trim()
+    .isLength({ min: 1, max: 200 }).withMessage('Task title must be between 1 and 200 characters'),
+
+  body('description')
+    .optional()
+    .trim(),
+
+  body('assignees')
+    .optional()
+    .isArray().withMessage('Assignees must be an array of user IDs'),
+
+  body('deadline')
+    .optional({ nullable: true })
+    .isISO8601().withMessage('Deadline must be a valid ISO 8601 date string'),
+
+  handleValidationErrors,
+];
+
+/**
+ * Validation rules for updating task status (FR-26, BR-11)
+ */
+const updateTaskStatusValidator = [
+  body('status')
+    .notEmpty().withMessage('Status is required')
+    .isIn(['To Do', 'In Progress', 'Completed'])
+    .withMessage('Status must be one of: To Do, In Progress, Completed'),
+
+  handleValidationErrors,
+];
+
 module.exports = {
   handleValidationErrors,
   registerValidator,
@@ -125,4 +240,10 @@ module.exports = {
   forgotPasswordValidator,
   resetPasswordValidator,
   resendVerificationValidator,
+  createProjectValidator,
+  updateProjectValidator,
+  addCollaboratorValidator,
+  createTaskValidator,
+  updateTaskValidator,
+  updateTaskStatusValidator,
 };

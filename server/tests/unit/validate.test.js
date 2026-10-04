@@ -5,6 +5,10 @@ const {
   loginValidator,
   forgotPasswordValidator,
   resetPasswordValidator,
+  createProjectValidator,
+  addCollaboratorValidator,
+  createTaskValidator,
+  updateTaskStatusValidator,
 } = require('../../middleware/validate');
 
 const createTestApp = (validator) => {
@@ -16,7 +20,7 @@ const createTestApp = (validator) => {
   return app;
 };
 
-describe('Validation Middleware Unit Tests (TG-4)', () => {
+describe('Validation Middleware Unit Tests', () => {
   describe('registerValidator', () => {
     const app = createTestApp(registerValidator);
 
@@ -129,6 +133,67 @@ describe('Validation Middleware Unit Tests (TG-4)', () => {
 
       expect(res.status).toBe(400);
       expect(res.body.errors.some((e) => e.field === 'confirmPassword')).toBe(true);
+    });
+  });
+
+  describe('createProjectValidator & addCollaboratorValidator (Phase 2)', () => {
+    const projectApp = createTestApp(createProjectValidator);
+    const collabApp = createTestApp(addCollaboratorValidator);
+
+    it('VAL-09: should pass with valid project payload', async () => {
+      const res = await request(projectApp)
+        .post('/test')
+        .send({
+          title: 'Sylo Web App',
+          description: 'Modern PM tool',
+        });
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+    });
+
+    it('VAL-09b: should reject project with empty title', async () => {
+      const res = await request(projectApp)
+        .post('/test')
+        .send({ title: '' });
+
+      expect(res.status).toBe(400);
+      expect(res.body.errors.some((e) => e.field === 'title')).toBe(true);
+    });
+
+    it('VAL-10: should validate and lowercase collaborator username', async () => {
+      const res = await request(collabApp)
+        .post('/test')
+        .send({ username: 'sarah_c' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.username).toBe('sarah_c');
+    });
+
+    it('VAL-11: should reject invalid collaborator username format', async () => {
+      const res = await request(collabApp)
+        .post('/test')
+        .send({ username: 'user@with!invalid#chars' });
+
+      expect(res.status).toBe(400);
+      expect(res.body.errors.some((e) => e.field === 'username')).toBe(true);
+    });
+  });
+
+  describe('updateTaskStatusValidator (Phase 2)', () => {
+    const app = createTestApp(updateTaskStatusValidator);
+
+    it('VAL-12: should accept valid status enum values', async () => {
+      for (const status of ['To Do', 'In Progress', 'Completed']) {
+        const res = await request(app).post('/test').send({ status });
+        expect(res.status).toBe(200);
+      }
+    });
+
+    it('VAL-13: should reject invalid status enum values', async () => {
+      const res = await request(app).post('/test').send({ status: 'Archived' });
+      expect(res.status).toBe(400);
+      expect(res.body.errors.some((e) => e.field === 'status')).toBe(true);
     });
   });
 });
