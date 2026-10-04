@@ -221,10 +221,56 @@ const sendPasswordResetEmail = async (user, rawToken) => {
   return info;
 };
 
+/**
+ * Dispatch overdue task reminder email (FR-31, AC-09)
+ */
+const sendOverdueTaskAlert = async (recipient, task, project) => {
+  const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+  const projectUrl = `${clientUrl}/projects/${project._id || project.id}`;
+  const from = process.env.EMAIL_FROM || 'Sylo Workspace <no-reply@sylo.io>';
+  const deadlineStr = task.deadline ? new Date(task.deadline).toLocaleDateString() : 'N/A';
+
+  const bodyHtml = `
+    <h1>Overdue Task Alert: "${task.title}"</h1>
+    <p>Hi ${recipient.name || recipient.username},</p>
+    <p>The following task in project <strong>${project.title}</strong> is past its scheduled deadline and has not been marked as completed:</p>
+    <div style="background: #f1f5f9; padding: 16px; border-radius: 8px; margin: 16px 0;">
+      <p style="margin: 0 0 8px 0;"><strong>Task:</strong> ${task.title}</p>
+      <p style="margin: 0 0 8px 0;"><strong>Project:</strong> ${project.title}</p>
+      <p style="margin: 0;"><strong>Due Date:</strong> ${deadlineStr}</p>
+    </div>
+    <div class="button-container">
+      <a href="${projectUrl}" class="button" target="_blank">View Task in Sylo</a>
+    </div>
+    <p>Please update the task status or adjust the target date with your team lead.</p>
+  `;
+
+  const text = `Hi ${recipient.name || recipient.username},\n\nThe task "${task.title}" in project "${project.title}" was due on ${deadlineStr} and is overdue.\n\nView it in Sylo: ${projectUrl}`;
+
+  const transporter = await getTransporter();
+  const info = await transporter.sendMail({
+    from,
+    to: recipient.email,
+    subject: `Overdue Task Alert: "${task.title}"`,
+    html: renderEmailLayout({ title: 'Overdue Task Alert', bodyHtml }),
+    text,
+  });
+
+  if (process.env.NODE_ENV !== 'production' && process.env.NODE_ENV !== 'test') {
+    const preview = nodemailer.getTestMessageUrl(info);
+    if (preview) {
+      console.log(`📧 [Ethereal Sandbox] Overdue task alert preview: ${preview}`);
+    }
+  }
+
+  return info;
+};
+
 module.exports = {
   getTransporter,
   sendVerificationEmail,
   sendWelcomeEmail,
   sendPasswordResetEmail,
-  dispatchedEmails
+  sendOverdueTaskAlert,
+  dispatchedEmails,
 };

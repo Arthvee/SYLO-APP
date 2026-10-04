@@ -30,6 +30,12 @@ app.get('/api/health', (req, res) => {
 const authRoutes = require('./routes/authRoutes');
 app.use('/api/auth', authRoutes);
 
+// Project & Task routes (Phase 2)
+const projectRoutes = require('./routes/projectRoutes');
+const taskRoutes = require('./routes/taskRoutes');
+app.use('/api/projects', projectRoutes);
+app.use('/api/tasks', taskRoutes);
+
 // Centralized error handler
 const errorHandler = require('./middleware/errorHandler');
 app.use(errorHandler);

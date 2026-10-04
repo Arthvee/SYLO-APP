@@ -19,9 +19,10 @@ const requireProjectMember = async (req, res, next) => {
     }
 
     const userId = req.user._id.toString();
-    const isOwner = project.owner.toString() === userId;
+    const ownerId = project.owner._id ? project.owner._id.toString() : project.owner.toString();
+    const isOwner = ownerId === userId;
     const isCollaborator = project.collaborators.some(
-      (collabId) => collabId.toString() === userId
+      (collabId) => (collabId._id ? collabId._id.toString() : collabId.toString()) === userId
     );
 
     if (!isOwner && !isCollaborator) {
@@ -57,7 +58,8 @@ const requireProjectAdmin = async (req, res, next) => {
       });
     }
 
-    if (project.owner.toString() !== req.user._id.toString()) {
+    const ownerId = project.owner._id ? project.owner._id.toString() : project.owner.toString();
+    if (ownerId !== req.user._id.toString()) {
       return res.status(403).json({
         success: false,
         message: 'Forbidden. Only the Project Admin can perform this action.',
@@ -91,7 +93,8 @@ const requireTaskAdmin = async (req, res, next) => {
     }
 
     const project = await Project.findById(task.project);
-    if (!project || project.owner.toString() !== req.user._id.toString()) {
+    const ownerId = project && (project.owner._id ? project.owner._id.toString() : project.owner.toString());
+    if (!project || ownerId !== req.user._id.toString()) {
       return res.status(403).json({
         success: false,
         message: 'Forbidden. Only the Project Admin can modify or delete tasks.',
@@ -134,9 +137,10 @@ const requireTaskAssigneeOrAdmin = async (req, res, next) => {
     }
 
     const userId = req.user._id.toString();
-    const isOwner = project.owner.toString() === userId;
+    const ownerId = project.owner._id ? project.owner._id.toString() : project.owner.toString();
+    const isOwner = ownerId === userId;
     const isAssignee = task.assignees.some(
-      (assigneeId) => assigneeId.toString() === userId
+      (assigneeId) => (assigneeId._id ? assigneeId._id.toString() : assigneeId.toString()) === userId
     );
 
     if (!isOwner && !isAssignee) {
