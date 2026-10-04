@@ -1,0 +1,4 @@
+.layout { display: flex; min-height: 100vh; }
+.layoutMain { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.layoutContent { padding: 24px; }
+@media (max-width: 768px) { .layoutContent { padding-bottom: 80px; } }
