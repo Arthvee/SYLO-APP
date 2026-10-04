@@ -26,4 +26,9 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// Centralized error handler
+const errorHandler = require('./middleware/errorHandler');
+app.use(errorHandler);
+
 module.exports = app;
+

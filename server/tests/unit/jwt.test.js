@@ -1,6 +1,10 @@
+process.env.JWT_SECRET = process.env.JWT_SECRET || 'test_jwt_secret_key_12345';
+process.env.JWT_EXPIRES_IN = '1h';
+
 const { generateToken, verifyToken } = require('../../utils/jwt');
 
 describe('JWT Utility Unit Tests (TG-2)', () => {
+
   const mockUser = {
     _id: '6700c8f5e7149a4e9b9c0001',
     username: 'alexvance',
