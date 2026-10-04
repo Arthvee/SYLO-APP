@@ -1,112 +1,153 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../hooks/useToast';
-import { useNavigate } from 'react-router-dom';
+import Avatar from '../components/common/Avatar';
+import Badge from '../components/common/Badge';
+import Button from '../components/common/Button';
+import ConfirmDialog from '../components/common/ConfirmDialog';
 
 export default function SettingsPage() {
   const { user, logout } = useAuth();
   const { showToast } = useToast();
   const navigate = useNavigate();
 
-  const handleLogout = () => {
+  const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false);
+
+  const handleConfirmLogout = () => {
     logout();
     showToast('Signed out successfully', 'info');
     navigate('/login');
   };
 
   return (
-    <div className="space-y-6 max-w-4xl">
-      {/* Title */}
+    <div className="space-y-6 max-w-4xl mx-auto">
+      {/* Page Title */}
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-on-surface">Settings & Profile</h1>
-        <p className="text-sm text-on-surface-variant">
-          Manage your account credentials and workspace preferences.
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-on-surface">
+          Settings & Profile
+        </h1>
+        <p className="text-xs sm:text-sm text-on-surface-variant mt-1">
+          Manage your account profile, verification credentials, and system settings.
         </p>
       </div>
 
-      {/* Profile Card */}
-      <div className="rounded-2xl bg-surface-container-lowest border border-surface-container p-6 shadow-card space-y-6">
-        <div className="flex items-center gap-4">
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary-fixed text-on-primary-fixed font-bold text-2xl shadow-subtle">
-            {user?.name ? user.name.charAt(0).toUpperCase() : user?.username?.charAt(0).toUpperCase() || 'U'}
-          </div>
+      {/* Profile Overview Card */}
+      <div className="rounded-2xl bg-surface-container-lowest border border-surface-container p-6 sm:p-7 shadow-card space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+          <Avatar user={user} size="xl" className="shadow-subtle" />
           <div>
-            <h2 className="text-lg font-bold text-on-surface">{user?.name || user?.username}</h2>
-            <p className="text-xs text-on-surface-variant">@{user?.username}</p>
-            <div className="mt-1 flex items-center gap-2">
-              <span className="inline-flex items-center gap-1 rounded-full bg-[#e6f4ea] px-2.5 py-0.5 text-[11px] font-semibold text-[#137333]">
-                <span className="material-symbols-outlined text-xs">verified</span>
-                Verified Account
-              </span>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h2 className="text-lg sm:text-xl font-bold text-on-surface">
+                {user?.name || user?.username}
+              </h2>
+              {user?.isVerified && (
+                <Badge variant="Completed" size="sm" icon="verified">
+                  Verified Member
+                </Badge>
+              )}
             </div>
+            <p className="text-xs sm:text-sm text-on-surface-variant mt-0.5">
+              @{user?.username}
+            </p>
+            <p className="text-xs text-outline mt-0.5">{user?.email}</p>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-surface-container text-xs">
+        {/* Read-only Credentials Display */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-surface-container text-xs">
           <div>
-            <span className="font-semibold text-outline uppercase block mb-1">Full Name</span>
-            <div className="rounded-xl bg-surface-container-low px-3 py-2 text-on-surface font-medium">
+            <span className="font-semibold text-outline uppercase tracking-wider block mb-1">
+              Display Name
+            </span>
+            <div className="rounded-xl bg-surface-container-low px-3.5 py-2.5 text-on-surface font-medium">
               {user?.name || 'Not provided'}
             </div>
           </div>
 
           <div>
-            <span className="font-semibold text-outline uppercase block mb-1">Username</span>
-            <div className="rounded-xl bg-surface-container-low px-3 py-2 text-on-surface font-medium font-mono">
+            <span className="font-semibold text-outline uppercase tracking-wider block mb-1">
+              Username Handle
+            </span>
+            <div className="rounded-xl bg-surface-container-low px-3.5 py-2.5 text-on-surface font-medium font-mono">
               @{user?.username}
             </div>
           </div>
 
-          <div className="md:col-span-2">
-            <span className="font-semibold text-outline uppercase block mb-1">Email Address</span>
-            <div className="rounded-xl bg-surface-container-low px-3 py-2 text-on-surface font-medium">
+          <div className="sm:col-span-2">
+            <span className="font-semibold text-outline uppercase tracking-wider block mb-1">
+              Email Address
+            </span>
+            <div className="rounded-xl bg-surface-container-low px-3.5 py-2.5 text-on-surface font-medium">
               {user?.email}
             </div>
           </div>
         </div>
       </div>
 
-      {/* System Preferences Card */}
-      <div className="rounded-2xl bg-surface-container-lowest border border-surface-container p-6 shadow-card space-y-4">
-        <h3 className="text-base font-bold text-on-surface">Application System</h3>
-        <div className="space-y-3 text-xs">
+      {/* Application Tokens & Architecture */}
+      <div className="rounded-2xl bg-surface-container-lowest border border-surface-container p-6 sm:p-7 shadow-card space-y-4">
+        <h3 className="text-base font-bold text-on-surface">Design Architecture</h3>
+        <p className="text-xs text-on-surface-variant">
+          Sylo operates on Google Stitch Design System tokens (Project 17067369580908098964).
+        </p>
+
+        <div className="space-y-3 pt-2 text-xs">
           <div className="flex items-center justify-between py-2 border-b border-surface-container">
             <div>
-              <div className="font-semibold text-on-surface">Google Stitch Design System</div>
-              <div className="text-on-surface-variant text-[11px]">Tokenized CSS variables and Material Symbols</div>
+              <div className="font-semibold text-on-surface">Typography Engine</div>
+              <div className="text-[11px] text-on-surface-variant">Inter (Sans) & JetBrains Mono (Code)</div>
             </div>
-            <span className="rounded-full bg-primary-fixed px-2.5 py-0.5 font-semibold text-on-primary-fixed text-[11px]">
-              Active
-            </span>
+            <Badge variant="Active" size="sm">Active</Badge>
+          </div>
+
+          <div className="flex items-center justify-between py-2 border-b border-surface-container">
+            <div>
+              <div className="font-semibold text-on-surface">Session Security</div>
+              <div className="text-[11px] text-on-surface-variant">JWT 24-hour expiration with automatic purge</div>
+            </div>
+            <Badge variant="Almost Done" size="sm">Enforced</Badge>
           </div>
 
           <div className="flex items-center justify-between py-2">
             <div>
-              <div className="font-semibold text-on-surface">Session Security</div>
-              <div className="text-on-surface-variant text-[11px]">JWT 24-hour expiration with automatic purge</div>
+              <div className="font-semibold text-on-surface">Shared-Interface Principle</div>
+              <div className="text-[11px] text-on-surface-variant">Role-based UI rendering without view bifurcation</div>
             </div>
-            <span className="rounded-full bg-tertiary-fixed px-2.5 py-0.5 font-semibold text-on-tertiary-fixed text-[11px]">
-              Enforced
-            </span>
+            <Badge variant="Completed" size="sm">Compliant</Badge>
           </div>
         </div>
       </div>
 
-      {/* Danger Zone */}
-      <div className="rounded-2xl bg-surface-container-lowest border border-error/20 p-6 shadow-card">
-        <h3 className="text-base font-bold text-error mb-1">Account Session</h3>
-        <p className="text-xs text-on-surface-variant mb-4">
-          Terminate your current authentication session on this device.
-        </p>
+      {/* Danger Zone: Logout */}
+      <div className="rounded-2xl bg-surface-container-lowest border border-error/20 p-6 shadow-card flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h3 className="text-base font-bold text-error">Session Termination</h3>
+          <p className="text-xs text-on-surface-variant mt-0.5">
+            Sign out of your active Sylo workspace on this browser.
+          </p>
+        </div>
 
-        <button
-          onClick={handleLogout}
-          className="inline-flex items-center gap-2 rounded-xl bg-error px-4 py-2 text-xs font-semibold text-on-error hover:bg-error/90 transition-colors shadow-subtle"
+        <Button
+          variant="danger"
+          size="md"
+          icon="logout"
+          onClick={() => setIsLogoutDialogOpen(true)}
+          className="self-start sm:self-auto shrink-0"
         >
-          <span className="material-symbols-outlined text-base">logout</span>
-          Sign Out of Sylo
-        </button>
+          Sign Out
+        </Button>
       </div>
+
+      {/* Sign Out Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={isLogoutDialogOpen}
+        onClose={() => setIsLogoutDialogOpen(false)}
+        onConfirm={handleConfirmLogout}
+        title="Sign Out of Sylo"
+        message="Are you sure you want to end your current session? You will need to log back in to access your projects."
+        confirmText="Sign Out"
+      />
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import Avatar from '../common/Avatar';
 
 const Sidebar = ({ isMobileOpen, onCloseMobile }) => {
   const { user, logout } = useAuth();
@@ -30,7 +31,7 @@ const Sidebar = ({ isMobileOpen, onCloseMobile }) => {
       <div>
         <div className="flex items-center justify-between px-2 mb-6 h-12">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary-container text-on-primary">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary-container text-on-primary shadow-subtle">
               <span className="material-symbols-outlined text-xl">hub</span>
             </div>
             <span className="text-xl font-bold tracking-tight text-on-surface">Sylo</span>
@@ -64,9 +65,7 @@ const Sidebar = ({ isMobileOpen, onCloseMobile }) => {
       {/* User Card & Logout */}
       <div className="border-t border-surface-container pt-4">
         <div className="flex items-center gap-3 px-2 py-2 mb-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-fixed text-on-primary-fixed font-bold text-sm shrink-0">
-            {user?.name ? user.name.charAt(0).toUpperCase() : user?.username?.charAt(0).toUpperCase() || 'U'}
-          </div>
+          <Avatar user={user} size="md" />
           <div className="flex-1 min-w-0">
             <div className="text-sm font-semibold text-on-surface truncate">
               {user?.name || user?.username}

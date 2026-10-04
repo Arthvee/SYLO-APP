@@ -1,5 +1,6 @@
 import React from 'react';
 import { useAuth } from '../../hooks/useAuth';
+import Avatar from '../common/Avatar';
 
 const Header = ({ onOpenMobile }) => {
   const { user } = useAuth();
@@ -31,9 +32,7 @@ const Header = ({ onOpenMobile }) => {
               {user?.email}
             </div>
           </div>
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-fixed text-on-primary-fixed text-xs font-bold">
-            {user?.name ? user.name.charAt(0).toUpperCase() : user?.username?.charAt(0).toUpperCase() || 'U'}
-          </div>
+          <Avatar user={user} size="md" />
         </div>
       </div>
     </header>

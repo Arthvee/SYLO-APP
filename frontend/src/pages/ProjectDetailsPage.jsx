@@ -2,6 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useProject } from '../hooks/useProject';
 import { useToast } from '../hooks/useToast';
+import ProjectHeader from '../components/organisms/ProjectHeader';
+import TaskTable from '../components/organisms/TaskTable';
+import TaskModal from '../components/modals/TaskModal';
+import ProjectModal from '../components/modals/ProjectModal';
+import ConfirmDialog from '../components/common/ConfirmDialog';
+import Skeleton from '../components/common/Skeleton';
 
 export default function ProjectDetailsPage() {
   const { id } = useParams();
@@ -10,24 +16,30 @@ export default function ProjectDetailsPage() {
     activeProject,
     tasks,
     fetchProjectDetails,
-    createTask,
-    updateTaskStatus,
-    deleteTask,
+    updateProject,
     deleteProject,
+    leaveProject,
+    createTask,
+    updateTask,
+    deleteTask,
+    updateTaskStatus,
     isLoadingDetails,
   } = useProject();
   const { showToast } = useToast();
 
+  // Modals state
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
-  const [taskData, setTaskData] = useState({
-    title: '',
-    description: '',
-    priority: 'Medium',
-    deadline: '',
-  });
+  const [editingTask, setEditingTask] = useState(null);
+  const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [taskSearch, setTaskSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('ALL');
+
+  // Confirm dialogs
+  const [confirmDialog, setConfirmDialog] = useState({
+    isOpen: false,
+    type: null, // 'delete-project' | 'delete-task' | 'leave-project'
+    targetId: null,
+    isLoading: false,
+  });
 
   useEffect(() => {
     if (id) {
@@ -35,26 +47,32 @@ export default function ProjectDetailsPage() {
     }
   }, [id, fetchProjectDetails]);
 
-  const handleCreateTask = async (e) => {
-    e.preventDefault();
-    if (!taskData.title.trim()) {
-      showToast('Task title is required', 'error');
-      return;
-    }
+  // Task Actions
+  const handleOpenCreateTask = () => {
+    setEditingTask(null);
+    setIsTaskModalOpen(true);
+  };
 
+  const handleOpenEditTask = (task) => {
+    setEditingTask(task);
+    setIsTaskModalOpen(true);
+  };
+
+  const handleSaveTask = async (taskData) => {
     try {
       setIsSubmitting(true);
-      await createTask(id, {
-        title: taskData.title.trim(),
-        description: taskData.description.trim(),
-        priority: taskData.priority,
-        deadline: taskData.deadline || undefined,
-      });
-      showToast('Task created successfully', 'success');
-      setTaskData({ title: '', description: '', priority: 'Medium', deadline: '' });
+      if (editingTask) {
+        const taskId = editingTask.id || editingTask._id;
+        await updateTask(taskId, taskData);
+        showToast('Task updated successfully', 'success');
+      } else {
+        await createTask(id, taskData);
+        showToast('Task created successfully', 'success');
+      }
       setIsTaskModalOpen(false);
+      setEditingTask(null);
     } catch (err) {
-      const msg = err.response?.data?.message || err.message || 'Failed to create task';
+      const msg = err.response?.data?.message || err.message || 'Operation failed';
       showToast(msg, 'error');
     } finally {
       setIsSubmitting(false);
@@ -64,413 +82,188 @@ export default function ProjectDetailsPage() {
   const handleStatusChange = async (taskId, newStatus) => {
     try {
       await updateTaskStatus(taskId, newStatus);
-      showToast(`Task status updated to ${newStatus}`, 'success');
+      showToast(`Task status moved to ${newStatus}`, 'success');
     } catch (err) {
       const msg = err.response?.data?.message || err.message || 'Failed to update task status';
       showToast(msg, 'error');
     }
   };
 
-  const handleDeleteTask = async (taskId) => {
-    if (!window.confirm('Are you sure you want to delete this task?')) return;
+  // Project Actions
+  const handleSaveProject = async (formData) => {
     try {
-      await deleteTask(taskId);
-      showToast('Task deleted successfully', 'success');
+      setIsSubmitting(true);
+      await updateProject(id, formData);
+      showToast('Project updated successfully', 'success');
+      setIsProjectModalOpen(false);
     } catch (err) {
-      const msg = err.response?.data?.message || err.message || 'Failed to delete task';
+      const msg = err.response?.data?.message || err.message || 'Failed to update project';
       showToast(msg, 'error');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const handleDeleteProject = async () => {
-    if (!window.confirm('Are you sure you want to delete this project? All associated tasks will be permanently removed.')) return;
+  // Confirm Dialog Dispatcher
+  const handleConfirmAction = async () => {
+    setConfirmDialog((prev) => ({ ...prev, isLoading: true }));
     try {
-      await deleteProject(id);
-      showToast('Project deleted successfully', 'success');
-      navigate('/projects');
+      if (confirmDialog.type === 'delete-project') {
+        await deleteProject(id);
+        showToast('Project deleted successfully', 'success');
+        navigate('/projects');
+      } else if (confirmDialog.type === 'delete-task' && confirmDialog.targetId) {
+        await deleteTask(confirmDialog.targetId);
+        showToast('Task deleted successfully', 'success');
+      } else if (confirmDialog.type === 'leave-project') {
+        await leaveProject(id);
+        showToast('You have left the project', 'success');
+        navigate('/projects');
+      }
+      setConfirmDialog({ isOpen: false, type: null, targetId: null, isLoading: false });
     } catch (err) {
-      const msg = err.response?.data?.message || err.message || 'Failed to delete project';
+      const msg = err.response?.data?.message || err.message || 'Operation failed';
       showToast(msg, 'error');
-    }
-  };
-
-  const filteredTasks = tasks.filter((t) => {
-    const matchesSearch =
-      t.title.toLowerCase().includes(taskSearch.toLowerCase()) ||
-      (t.description && t.description.toLowerCase().includes(taskSearch.toLowerCase()));
-    const matchesStatus = statusFilter === 'ALL' || t.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
-
-  const getPriorityBadge = (priority) => {
-    switch (priority) {
-      case 'High':
-        return 'bg-error-container text-on-error-container';
-      case 'Medium':
-        return 'bg-primary-fixed text-on-primary-fixed';
-      case 'Low':
-        return 'bg-tertiary-fixed text-on-tertiary-fixed';
-      default:
-        return 'bg-surface-container text-on-surface-variant';
+      setConfirmDialog((prev) => ({ ...prev, isLoading: false }));
     }
   };
 
   if (isLoadingDetails && !activeProject) {
     return (
-      <div className="py-20 text-center text-sm text-on-surface-variant">
-        Loading project details...
+      <div className="space-y-6 max-w-7xl mx-auto">
+        <Skeleton variant="card" height="180px" />
+        <Skeleton variant="table-row" count={4} />
       </div>
     );
   }
 
   if (!activeProject) {
     return (
-      <div className="py-20 text-center">
-        <h2 className="text-lg font-bold text-on-surface">Project not found</h2>
-        <Link to="/projects" className="mt-4 inline-block text-xs font-semibold text-primary hover:underline">
+      <div className="py-20 text-center rounded-2xl bg-surface-container-lowest border border-surface-container max-w-md mx-auto">
+        <span className="material-symbols-outlined text-4xl text-outline mb-2">
+          folder_off
+        </span>
+        <h2 className="text-base font-bold text-on-surface">Project not found</h2>
+        <p className="text-xs text-on-surface-variant mt-1 mb-4">
+          This project may have been deleted or you do not have permission to view it.
+        </p>
+        <Link
+          to="/projects"
+          className="inline-flex items-center gap-1.5 rounded-xl bg-primary-container px-4 py-2 text-xs font-semibold text-on-primary hover:bg-primary transition-colors"
+        >
           Return to Projects
         </Link>
       </div>
     );
   }
 
-  const isAdmin = activeProject.role === 'Admin' || activeProject.role === 'admin';
-
   return (
-    <div className="space-y-6">
-      {/* Breadcrumb & Navigation */}
+    <div className="space-y-6 max-w-7xl mx-auto">
+      {/* Breadcrumb Navigation */}
       <div className="flex items-center gap-2 text-xs text-on-surface-variant">
         <Link to="/projects" className="hover:text-primary transition-colors">
           Projects
         </Link>
         <span>/</span>
-        <span className="font-semibold text-on-surface truncate max-w-xs">{activeProject.title}</span>
+        <span className="font-semibold text-on-surface truncate max-w-xs">
+          {activeProject.title}
+        </span>
       </div>
 
-      {/* Project Overview Banner */}
-      <div className="rounded-2xl bg-surface-container-lowest border border-surface-container p-6 shadow-card">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
-          <div>
-            <div className="flex items-center gap-2.5 mb-1.5 flex-wrap">
-              <h1 className="text-2xl font-bold tracking-tight text-on-surface">
-                {activeProject.title}
-              </h1>
-              <span className="rounded-full bg-primary-fixed px-2.5 py-0.5 text-xs font-semibold text-on-primary-fixed">
-                {activeProject.status || 'Active'}
-              </span>
-              <span className="rounded-full bg-surface-container px-2.5 py-0.5 text-xs font-semibold text-outline capitalize">
-                Role: {activeProject.role || 'Member'}
-              </span>
-            </div>
-            <p className="text-xs text-on-surface-variant max-w-2xl">
-              {activeProject.description || 'No description provided.'}
-            </p>
-          </div>
+      {/* Project Overview Header Organism */}
+      <ProjectHeader
+        project={activeProject}
+        activeTab="details"
+        onOpenNewTask={handleOpenCreateTask}
+        onOpenEditProject={() => setIsProjectModalOpen(true)}
+        onOpenDeleteProject={() =>
+          setConfirmDialog({
+            isOpen: true,
+            type: 'delete-project',
+            targetId: id,
+            isLoading: false,
+          })
+        }
+        onOpenLeaveProject={() =>
+          setConfirmDialog({
+            isOpen: true,
+            type: 'leave-project',
+            targetId: id,
+            isLoading: false,
+          })
+        }
+      />
 
-          {/* Quick Action Navigation */}
-          <div className="flex items-center gap-2 flex-wrap">
-            <Link
-              to={`/projects/${id}/kanban`}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-surface-container bg-surface px-3 py-2 text-xs font-semibold text-on-surface hover:bg-surface-container transition-colors shadow-subtle"
-            >
-              <span className="material-symbols-outlined text-base">view_kanban</span>
-              Kanban Board
-            </Link>
-            <Link
-              to={`/projects/${id}/members`}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-surface-container bg-surface px-3 py-2 text-xs font-semibold text-on-surface hover:bg-surface-container transition-colors shadow-subtle"
-            >
-              <span className="material-symbols-outlined text-base">group</span>
-              Team Members
-            </Link>
-            <button
-              onClick={() => setIsTaskModalOpen(true)}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-primary-container px-3.5 py-2 text-xs font-semibold text-on-primary hover:bg-primary transition-colors shadow-subtle"
-            >
-              <span className="material-symbols-outlined text-base">add</span>
-              New Task
-            </button>
-            {isAdmin && (
-              <button
-                onClick={handleDeleteProject}
-                className="p-2 rounded-xl text-outline hover:text-error hover:bg-error-container/20 transition-colors"
-                title="Delete Project"
-              >
-                <span className="material-symbols-outlined text-base">delete</span>
-              </button>
-            )}
-          </div>
-        </div>
+      {/* Task Table Organism */}
+      <TaskTable
+        tasks={tasks}
+        project={activeProject}
+        onStatusChange={handleStatusChange}
+        onEditTask={handleOpenEditTask}
+        onDeleteTask={(taskId) =>
+          setConfirmDialog({
+            isOpen: true,
+            type: 'delete-task',
+            targetId: taskId,
+            isLoading: false,
+          })
+        }
+        onOpenNewTask={handleOpenCreateTask}
+        isLoading={isLoadingDetails}
+      />
 
-        {/* Progress & Stats Bar */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 border-t border-surface-container">
-          <div>
-            <div className="flex items-center justify-between text-xs font-semibold mb-1">
-              <span className="text-on-surface-variant">Completion Progress</span>
-              <span className="text-primary">{activeProject.progress || 0}%</span>
-            </div>
-            <div className="h-2 w-full rounded-full bg-surface-container">
-              <div
-                className="h-2 rounded-full bg-primary transition-all duration-300"
-                style={{ width: `${activeProject.progress || 0}%` }}
-              />
-            </div>
-          </div>
+      {/* Task Modal (Create / Edit) */}
+      <TaskModal
+        isOpen={isTaskModalOpen}
+        onClose={() => {
+          setIsTaskModalOpen(false);
+          setEditingTask(null);
+        }}
+        onSubmit={handleSaveTask}
+        project={activeProject}
+        initialData={editingTask}
+        isLoading={isSubmitting}
+      />
 
-          <div className="flex items-center gap-3">
-            <span className="material-symbols-outlined text-2xl text-outline">calendar_today</span>
-            <div>
-              <div className="text-[11px] font-semibold text-outline uppercase">Deadline</div>
-              <div className="text-xs font-semibold text-on-surface">
-                {activeProject.deadline
-                  ? new Date(activeProject.deadline).toLocaleDateString()
-                  : 'No deadline'}
-              </div>
-            </div>
-          </div>
+      {/* Project Modal (Edit) */}
+      <ProjectModal
+        isOpen={isProjectModalOpen}
+        onClose={() => setIsProjectModalOpen(false)}
+        onSubmit={handleSaveProject}
+        initialData={activeProject}
+        isLoading={isSubmitting}
+      />
 
-          <div className="flex items-center gap-3">
-            <span className="material-symbols-outlined text-2xl text-outline">checklist</span>
-            <div>
-              <div className="text-[11px] font-semibold text-outline uppercase">Tasks Total</div>
-              <div className="text-xs font-semibold text-on-surface">
-                {tasks.filter((t) => t.status === 'Completed').length} / {tasks.length} Completed
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Tasks Section */}
-      <div className="rounded-2xl bg-surface-container-lowest border border-surface-container p-6 shadow-card space-y-4">
-        {/* Task List Controls */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-          <div className="relative flex-1 max-w-sm">
-            <span className="material-symbols-outlined absolute left-3 top-2.5 text-lg text-outline">
-              search
-            </span>
-            <input
-              type="text"
-              placeholder="Search tasks..."
-              value={taskSearch}
-              onChange={(e) => setTaskSearch(e.target.value)}
-              className="w-full rounded-xl bg-surface-container-low pl-9 pr-4 py-2 text-xs text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary/20"
-            />
-          </div>
-
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
-            {['ALL', 'To Do', 'In Progress', 'Completed'].map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setStatusFilter(tab)}
-                className={`rounded-lg px-3 py-1.5 text-xs font-semibold whitespace-nowrap transition-colors ${
-                  statusFilter === tab
-                    ? 'bg-primary text-on-primary'
-                    : 'bg-surface-container text-on-surface-variant hover:text-on-surface'
-                }`}
-              >
-                {tab}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Task List Table */}
-        {filteredTasks.length === 0 ? (
-          <div className="py-12 text-center">
-            <span className="material-symbols-outlined text-4xl text-outline mb-2">task_alt</span>
-            <p className="text-sm font-semibold text-on-surface">No tasks found</p>
-            <p className="text-xs text-on-surface-variant mt-1 mb-4">
-              Add actionable tasks to track project progress.
-            </p>
-            <button
-              onClick={() => setIsTaskModalOpen(true)}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-primary-container px-3.5 py-2 text-xs font-semibold text-on-primary hover:bg-primary transition-colors"
-            >
-              <span className="material-symbols-outlined text-base">add</span>
-              Create First Task
-            </button>
-          </div>
-        ) : (
-          <div className="divide-y divide-surface-container">
-            {filteredTasks.map((task) => {
-              const taskId = task.id || task._id;
-              return (
-                <div
-                  key={taskId}
-                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 py-3.5 hover:bg-surface-container-low/50 px-2 rounded-xl transition-colors"
-                >
-                  <div className="flex items-start gap-3 flex-1 min-w-0">
-                    {/* Status check toggle */}
-                    <button
-                      onClick={() =>
-                        handleStatusChange(
-                          taskId,
-                          task.status === 'Completed' ? 'To Do' : 'Completed'
-                        )
-                      }
-                      className="mt-0.5 text-outline hover:text-primary transition-colors"
-                      title={task.status === 'Completed' ? 'Mark Incomplete' : 'Mark Completed'}
-                    >
-                      <span className="material-symbols-outlined text-xl">
-                        {task.status === 'Completed' ? 'check_circle' : 'radio_button_unchecked'}
-                      </span>
-                    </button>
-
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span
-                          className={`text-sm font-semibold text-on-surface ${
-                            task.status === 'Completed' ? 'line-through text-outline' : ''
-                          }`}
-                        >
-                          {task.title}
-                        </span>
-                        <span
-                          className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${getPriorityBadge(
-                            task.priority
-                          )}`}
-                        >
-                          {task.priority || 'Medium'}
-                        </span>
-                      </div>
-                      {task.description && (
-                        <p className="text-xs text-on-surface-variant mt-0.5 line-clamp-1">
-                          {task.description}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Actions & Status Dropdown */}
-                  <div className="flex items-center gap-3 self-end sm:self-auto">
-                    {task.deadline && (
-                      <span className="text-[11px] text-outline flex items-center gap-1">
-                        <span className="material-symbols-outlined text-sm">schedule</span>
-                        {new Date(task.deadline).toLocaleDateString()}
-                      </span>
-                    )}
-
-                    <select
-                      value={task.status}
-                      onChange={(e) => handleStatusChange(taskId, e.target.value)}
-                      className="rounded-lg bg-surface border border-surface-container px-2 py-1 text-xs text-on-surface font-medium focus:outline-none focus:ring-1 focus:ring-primary/20"
-                    >
-                      <option value="To Do">To Do</option>
-                      <option value="In Progress">In Progress</option>
-                      <option value="Completed">Completed</option>
-                    </select>
-
-                    <button
-                      onClick={() => handleDeleteTask(taskId)}
-                      className="p-1 rounded-lg text-outline hover:text-error hover:bg-error-container/20 transition-colors"
-                      title="Delete Task"
-                    >
-                      <span className="material-symbols-outlined text-base">delete</span>
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      {/* New Task Modal */}
-      {isTaskModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div
-            className="fixed inset-0 bg-on-surface/40 backdrop-blur-xs"
-            onClick={() => setIsTaskModalOpen(false)}
-          />
-          <div className="relative w-full max-w-md rounded-2xl bg-surface-container-lowest p-6 shadow-modal border border-surface-container z-10">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold text-on-surface">Create New Task</h2>
-              <button
-                onClick={() => setIsTaskModalOpen(false)}
-                className="p-1 rounded-lg text-outline hover:text-on-surface"
-              >
-                <span className="material-symbols-outlined text-lg">close</span>
-              </button>
-            </div>
-
-            <form onSubmit={handleCreateTask} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-on-surface mb-1">
-                  Task Title *
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Implement user profile avatar upload"
-                  value={taskData.title}
-                  onChange={(e) => setTaskData({ ...taskData, title: e.target.value })}
-                  className="w-full rounded-xl border border-surface-container bg-surface px-3 py-2 text-xs text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/20"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-on-surface mb-1">
-                  Description
-                </label>
-                <textarea
-                  rows={3}
-                  placeholder="Details, acceptance criteria, or links..."
-                  value={taskData.description}
-                  onChange={(e) => setTaskData({ ...taskData, description: e.target.value })}
-                  className="w-full rounded-xl border border-surface-container bg-surface px-3 py-2 text-xs text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/20"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-on-surface mb-1">
-                    Priority
-                  </label>
-                  <select
-                    value={taskData.priority}
-                    onChange={(e) => setTaskData({ ...taskData, priority: e.target.value })}
-                    className="w-full rounded-xl border border-surface-container bg-surface px-3 py-2 text-xs text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/20"
-                  >
-                    <option value="Low">Low</option>
-                    <option value="Medium">Medium</option>
-                    <option value="High">High</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-on-surface mb-1">
-                    Deadline
-                  </label>
-                  <input
-                    type="date"
-                    value={taskData.deadline}
-                    onChange={(e) => setTaskData({ ...taskData, deadline: e.target.value })}
-                    className="w-full rounded-xl border border-surface-container bg-surface px-3 py-2 text-xs text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/20"
-                  />
-                </div>
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setIsTaskModalOpen(false)}
-                  className="rounded-xl px-4 py-2 text-xs font-semibold text-on-surface-variant hover:bg-surface-container transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="rounded-xl bg-primary-container px-4 py-2 text-xs font-semibold text-on-primary hover:bg-primary transition-colors disabled:opacity-60"
-                >
-                  {isSubmitting ? 'Creating...' : 'Create Task'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      {/* Reusable Confirm Dialog */}
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        onClose={() =>
+          setConfirmDialog({ isOpen: false, type: null, targetId: null, isLoading: false })
+        }
+        onConfirm={handleConfirmAction}
+        isLoading={confirmDialog.isLoading}
+        title={
+          confirmDialog.type === 'delete-project'
+            ? 'Delete Project'
+            : confirmDialog.type === 'delete-task'
+            ? 'Delete Task'
+            : 'Leave Project'
+        }
+        message={
+          confirmDialog.type === 'delete-project'
+            ? `Permanently delete "${activeProject.title}" and cascade delete all its tasks (BR-03)? This action cannot be undone.`
+            : confirmDialog.type === 'delete-task'
+            ? 'Are you sure you want to delete this task? Parent project progress will be recalculated.'
+            : `Are you sure you want to leave ${activeProject.title}? You will lose access until re-invited.`
+        }
+        confirmText={
+          confirmDialog.type === 'delete-project'
+            ? 'Delete Project'
+            : confirmDialog.type === 'delete-task'
+            ? 'Delete Task'
+            : 'Leave Project'
+        }
+      />
     </div>
   );
 }
