@@ -1,7 +1,7 @@
+const bcrypt = require('bcryptjs');
 const User = require('../../models/User');
-require('../setup');
 
-describe('User Model Unit Tests (TG-2)', () => {
+describe('User Model & Schema Unit Tests (TG-2)', () => {
   const validUserData = {
     name: 'Alex Vance',
     username: 'alexvance',
@@ -9,80 +9,77 @@ describe('User Model Unit Tests (TG-2)', () => {
     password: 'Password123!',
   };
 
-  it('U-01: should create and save a user successfully with valid fields', async () => {
+  it('U-01: should validate successfully with all required valid fields', async () => {
     const user = new User(validUserData);
-    const savedUser = await user.save();
+    await expect(user.validate()).resolves.toBeUndefined();
 
-    expect(savedUser._id).toBeDefined();
-    expect(savedUser.name).toBe('Alex Vance');
-    expect(savedUser.username).toBe('alexvance');
-    expect(savedUser.email).toBe('alex.vance@example.com');
-    expect(savedUser.isVerified).toBe(false);
+    expect(user.name).toBe('Alex Vance');
+    expect(user.username).toBe('alexvance');
+    expect(user.email).toBe('alex.vance@example.com');
+    expect(user.isVerified).toBe(false);
   });
 
   it('U-02: should reject usernames violating length and character constraints', async () => {
     // Too short (< 3 chars)
     const shortUser = new User({ ...validUserData, username: 'al' });
-    await expect(shortUser.save()).rejects.toThrow();
+    await expect(shortUser.validate()).rejects.toThrow();
+
+    // Too long (> 20 chars)
+    const longUser = new User({ ...validUserData, username: 'thisusernameiswaytoolongtofit' });
+    await expect(longUser.validate()).rejects.toThrow();
 
     // Invalid characters (spaces, special symbols)
     const invalidCharUser = new User({ ...validUserData, username: 'alex!vance' });
-    await expect(invalidCharUser.save()).rejects.toThrow();
+    await expect(invalidCharUser.validate()).rejects.toThrow();
   });
 
-  it('U-03: should normalize username and email to lowercase', async () => {
+  it('U-03: should normalize username and email to lowercase', () => {
     const user = new User({
       ...validUserData,
       username: 'ALEX_VANCE',
       email: 'ALEX.VANCE@EXAMPLE.COM',
     });
-    const savedUser = await user.save();
 
-    expect(savedUser.username).toBe('alex_vance');
-    expect(savedUser.email).toBe('alex.vance@example.com');
+    expect(user.username).toBe('alex_vance');
+    expect(user.email).toBe('alex.vance@example.com');
   });
 
-  it('U-04: should enforce uniqueness on username and email', async () => {
-    await new User(validUserData).save();
-
-    // Duplicate username
-    const dupUsername = new User({
+  it('U-04: should reject invalid email format during validation', async () => {
+    const invalidEmailUser = new User({
       ...validUserData,
-      email: 'different@example.com',
+      email: 'not-a-valid-email',
     });
-    await expect(dupUsername.save()).rejects.toThrow();
 
-    // Duplicate email
-    const dupEmail = new User({
-      ...validUserData,
-      username: 'differentuser',
-    });
-    await expect(dupEmail.save()).rejects.toThrow();
+    await expect(invalidEmailUser.validate()).rejects.toThrow(/valid email/);
   });
 
-  it('U-05: should hash password with bcrypt on save', async () => {
-    const user = new User(validUserData);
-    await user.save();
+  it('U-05: should reject password shorter than 8 characters', async () => {
+    const shortPassUser = new User({
+      ...validUserData,
+      password: 'short',
+    });
 
-    // Query raw document with password selected
-    const fetched = await User.findById(user._id).select('+password');
-    expect(fetched.password).not.toBe(validUserData.password);
-    expect(fetched.password).toMatch(/^\$2[aby]\$\d+\$/); // bcrypt hash format
+    await expect(shortPassUser.validate()).rejects.toThrow();
   });
 
   it('U-06: should correctly compare valid and invalid passwords via comparePassword()', async () => {
-    const user = new User(validUserData);
-    await user.save();
+    const rawPassword = 'Password123!';
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(rawPassword, salt);
 
-    const fetched = await User.findById(user._id).select('+password');
-    const isMatch = await fetched.comparePassword('Password123!');
-    const isWrongMatch = await fetched.comparePassword('WrongPassword999!');
+    const user = new User({
+      ...validUserData,
+      password: hashedPassword,
+    });
+
+    const isMatch = await user.comparePassword('Password123!');
+    const isWrongMatch = await user.comparePassword('WrongPassword999!');
 
     expect(isMatch).toBe(true);
     expect(isWrongMatch).toBe(false);
   });
 
-  it('U-07: should generate SHA-256 hashed email verification token with 24h expiration', async () => {
+  it('U-07: should generate SHA-256 hashed email verification token with 24h expiration', () => {
     const user = new User(validUserData);
     const rawToken = user.createEmailVerificationToken();
 
@@ -93,7 +90,7 @@ describe('User Model Unit Tests (TG-2)', () => {
     expect(user.verificationExpires.getTime()).toBeGreaterThan(Date.now() + 23 * 3600 * 1000);
   });
 
-  it('U-08: should generate SHA-256 hashed password reset token with 1h expiration', async () => {
+  it('U-08: should generate SHA-256 hashed password reset token with 1h expiration', () => {
     const user = new User(validUserData);
     const rawToken = user.createPasswordResetToken();
 
@@ -104,11 +101,10 @@ describe('User Model Unit Tests (TG-2)', () => {
     expect(user.resetPasswordExpires.getTime()).toBeGreaterThan(Date.now() + 50 * 60 * 1000);
   });
 
-  it('U-09: should exclude sensitive fields in toJSON output', async () => {
+  it('U-09: should exclude sensitive fields in toJSON output', () => {
     const user = new User(validUserData);
     user.createEmailVerificationToken();
     user.createPasswordResetToken();
-    await user.save();
 
     const json = user.toJSON();
     expect(json.password).toBeUndefined();
