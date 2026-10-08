@@ -1,0 +1,9 @@
+.pageSubtitle { color: var(--color-muted); margin-bottom: 20px; }
+.statGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; margin-bottom: 28px; }
+.statCard, .projectCard { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius); padding: 16px; }
+.statValue { font-size: 2rem; font-weight: 700; }
+.statLabel { color: var(--color-muted); }
+.projectGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-top: 12px; }
+.projectDesc { color: var(--color-muted); margin: 6px 0 12px; }
+.projectMeta { margin-top: 8px; font-weight: 600; }
+.stateTag { color: var(--color-primary); font-size: 0.9rem; }
