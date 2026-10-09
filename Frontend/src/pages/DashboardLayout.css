@@ -1,0 +1,250 @@
+.dashboard-layout {
+  display: grid;
+  grid-template-columns: 250px 1fr;
+  min-height: 100vh;
+  background-color: var(--light-color);
+}
+
+.sidebar {
+  background-color: var(--secondary-color);
+  color: white;
+  padding: 2rem 0;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+}
+
+.sidebar-header {
+  padding: 0 2rem;
+  margin-bottom: 3rem;
+}
+
+.sidebar-header h3 {
+  font-size: 1.5rem;
+  color: var(--primary-color);
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 2rem;
+  padding: 0 1rem;
+}
+
+.nav-item {
+  display: block;
+  padding: 0.875rem 1rem;
+  color: white;
+  text-decoration: none;
+  border-radius: var(--border-radius);
+  transition: var(--transition);
+}
+
+.nav-item:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.nav-item.active {
+  background-color: var(--primary-color);
+  font-weight: 600;
+}
+
+.sidebar-footer {
+  padding: 2rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.dashboard-main {
+  display: flex;
+  flex-direction: column;
+}
+
+.dashboard-header {
+  background: white;
+  padding: 2rem;
+  box-shadow: var(--box-shadow);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.dashboard-header h1 {
+  margin: 0;
+}
+
+.user-info {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.dashboard-content {
+  flex: 1;
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.stats-section h2 {
+  margin-bottom: 1.5rem;
+  color: var(--primary-color);
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 3rem;
+}
+
+.stat-card {
+  background: white;
+  padding: 2rem;
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  text-align: center;
+}
+
+.stat-card h3 {
+  font-size: 2.5rem;
+  color: var(--primary-color);
+  margin-bottom: 0.5rem;
+}
+
+.stat-card p {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+.quick-actions {
+  margin-bottom: 3rem;
+}
+
+.quick-actions h2 {
+  margin-bottom: 1rem;
+  color: var(--primary-color);
+}
+
+.actions-grid {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.recent-projects {
+  background: white;
+  padding: 2rem;
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+}
+
+.recent-projects h2 {
+  margin-bottom: 1rem;
+  color: var(--primary-color);
+}
+
+.form-container {
+  background: white;
+  padding: 2rem;
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  max-width: 600px;
+}
+
+.form-actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.settings-section {
+  margin-bottom: 2rem;
+}
+
+.settings-section h2 {
+  margin-bottom: 1rem;
+  color: var(--primary-color);
+}
+
+.settings-card {
+  background: white;
+  padding: 2rem;
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+}
+
+.settings-card p {
+  margin-bottom: 0.75rem;
+}
+
+.settings-actions {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 768px) {
+  .dashboard-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    position: fixed;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    height: auto;
+    padding: 1rem;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+
+  .sidebar-header {
+    grid-column: 1 / -1;
+    margin-bottom: 0;
+  }
+
+  .sidebar-nav {
+    grid-column: 1 / -1;
+    margin-bottom: 0;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .sidebar-footer {
+    grid-column: 1 / -1;
+    border-top: none;
+    padding: 1rem 0;
+  }
+
+  .dashboard-main {
+    padding-bottom: 150px;
+  }
+
+  .dashboard-header {
+    padding: 1.5rem;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .dashboard-content {
+    padding: 1rem;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .actions-grid {
+    flex-direction: column;
+  }
+
+  .actions-grid a {
+    width: 100%;
+  }
+}
