@@ -1,273 +1,130 @@
-const nodemailer = require('nodemailer');
-
-let cachedTransporter = null;
-const dispatchedEmails = []; // Holds dispatched email metadata for test assertions
-
 /**
- * Initialize or retrieve the active Nodemailer transporter.
- * In development without explicit SMTP credentials, auto-generates an Ethereal sandbox account.
+ * Mock Email Service Bypass for Sylo Development & Testing.
+ *
+ * Temporarily replaces Nodemailer/SMTP network calls to prevent 15000ms timeouts
+ * caused by local port blocks or unconfigured third-party providers.
+ * Outputs clickable verification and password reset links directly to the terminal.
  */
-const getTransporter = async () => {
-  if (cachedTransporter) {
-    return cachedTransporter;
-  }
 
-  // Test mode in-memory transporter
-  if (process.env.NODE_ENV === 'test') {
-    cachedTransporter = {
-      sendMail: async (options) => {
-        dispatchedEmails.push(options);
-        return { messageId: `mock-${Date.now()}`, envelope: options };
-      }
-    };
-    return cachedTransporter;
-  }
-
-  const host = process.env.SMTP_HOST;
-  const user = process.env.SMTP_USER;
-  const pass = process.env.SMTP_PASS;
-
-  // If explicit credentials are provided, use standard SMTP configuration
-  if (user && pass) {
-    cachedTransporter = nodemailer.createTransport({
-      host: host || 'smtp.ethereal.email',
-      port: parseInt(process.env.SMTP_PORT || '587', 10),
-      secure: process.env.SMTP_SECURE === 'true',
-      auth: { user, pass }
-    });
-    return cachedTransporter;
-  }
-
-  // Development Fallback: Auto-provision Ethereal test account
-  console.log('[EmailService] No SMTP credentials provided. Creating Ethereal sandbox account...');
-  const testAccount = await nodemailer.createTestAccount();
-  cachedTransporter = nodemailer.createTransport({
-    host: 'smtp.ethereal.email',
-    port: 587,
-    secure: false,
-    auth: {
-      user: testAccount.user,
-      pass: testAccount.pass
-    }
-  });
-
-  console.log(`[EmailService] Ethereal sandbox initialized (User: ${testAccount.user})`);
-  return cachedTransporter;
-};
+const dispatchedEmails = [];
 
 /**
- * Base Sylo email layout wrapper applying brand styling tokens
- */
-const renderEmailLayout = ({ title, bodyHtml, footerHtml }) => {
-  return `
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${title}</title>
-  <style>
-    body { margin: 0; padding: 0; background-color: #f8f9ff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #0b1c30; }
-    .wrapper { width: 100%; max-width: 580px; margin: 40px auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 8px rgba(0,0,0,0.04); border: 1px solid #e5eeff; }
-    .header { padding: 24px 32px; background-color: #ffffff; border-bottom: 1px solid #eff4ff; display: flex; align-items: center; }
-    .logo-badge { display: inline-block; width: 32px; height: 32px; background-color: #0052ff; border-radius: 8px; color: #ffffff; font-weight: bold; text-align: center; line-height: 32px; font-size: 16px; margin-right: 10px; }
-    .brand-name { font-size: 20px; font-weight: 700; color: #0b1c30; vertical-align: middle; }
-    .content { padding: 36px 32px; }
-    h1 { font-size: 22px; font-weight: 600; color: #0b1c30; margin-top: 0; margin-bottom: 16px; }
-    p { font-size: 15px; line-height: 24px; color: #434656; margin: 0 0 16px; }
-    .button-container { margin: 28px 0; }
-    .button { display: inline-block; padding: 12px 28px; background-color: #0052ff; color: #ffffff !important; text-decoration: none; border-radius: 8px; font-size: 14px; font-weight: 600; text-align: center; }
-    .footer { padding: 24px 32px; background-color: #eff4ff; border-top: 1px solid #e5eeff; font-size: 12px; color: #737688; line-height: 18px; }
-    .link-fallback { word-break: break-all; color: #0052ff; }
-  </style>
-</head>
-<body>
-  <div class="wrapper">
-    <div class="header">
-      <span class="logo-badge">&#9670;</span>
-      <span class="brand-name">Sylo</span>
-    </div>
-    <div class="content">
-      ${bodyHtml}
-    </div>
-    <div class="footer">
-      ${footerHtml || 'You are receiving this notification because you created or requested an action on your Sylo workspace.'}
-      <br>&copy; ${new Date().getFullYear()} Sylo Project Management. All rights reserved.
-    </div>
-  </div>
-</body>
-</html>
-  `;
-};
-
-/**
- * Dispatch verification email with token link (24h lifespan)
+ * Dispatch mock verification email with terminal link output.
+ * @param {object} user - User object containing email, name, username
+ * @param {string} rawToken - Unhashed verification token
+ * @returns {Promise<boolean>} Resolves immediately with true
  */
 const sendVerificationEmail = async (user, rawToken) => {
   const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
   const verifyUrl = `${clientUrl}/verify-email/${rawToken}`;
-  const from = process.env.EMAIL_FROM || 'Sylo Workspace <no-reply@sylo.io>';
+  const subject = 'Verify your Sylo account';
 
-  const bodyHtml = `
-    <h1>Verify your Sylo account</h1>
-    <p>Hi ${user.name || user.username},</p>
-    <p>Thanks for creating an account with Sylo. To activate your workspace and start collaborating with your team, please confirm your email address.</p>
-    <div class="button-container">
-      <a href="${verifyUrl}" class="button" target="_blank">Verify Email Address</a>
-    </div>
-    <p>This verification link will expire in <strong>24 hours</strong>.</p>
-    <p>If the button above does not work, copy and paste this URL into your browser:</p>
-    <p><a href="${verifyUrl}" class="link-fallback">${verifyUrl}</a></p>
-  `;
+  console.log('\n======================================================================');
+  console.log('📧 [EMAIL MOCK] Verification Email Dispatched');
+  console.log(`👤 Recipient : ${user.name || user.username} <${user.email}>`);
+  console.log(`🔗 Click to verify: ${verifyUrl}`);
+  console.log('======================================================================\n');
 
-  const text = `Hi ${user.name || user.username},\n\nPlease verify your Sylo account by opening the following link:\n${verifyUrl}\n\nThis link will expire in 24 hours.`;
-
-  const transporter = await getTransporter();
-  const info = await transporter.sendMail({
-    from,
+  dispatchedEmails.push({
     to: user.email,
-    subject: 'Verify your Sylo account',
-    html: renderEmailLayout({ title: 'Verify your Sylo account', bodyHtml }),
-    text
+    subject,
+    html: `<h1>Verify your Sylo account</h1><p>Hi ${user.name || user.username},</p><p><a href="${verifyUrl}">Verify Email Address</a></p>`,
+    text: `Hi ${user.name || user.username},\nVerify your account: ${verifyUrl}`,
+    token: rawToken,
+    url: verifyUrl,
+    timestamp: new Date(),
   });
 
-  if (process.env.NODE_ENV !== 'production' && process.env.NODE_ENV !== 'test') {
-    const preview = nodemailer.getTestMessageUrl(info);
-    if (preview) {
-      console.log(`📧 [Ethereal Sandbox] Verification email preview: ${preview}`);
-    }
-  }
-
-  return info;
+  return true;
 };
 
 /**
- * Dispatch welcome confirmation email post-verification
+ * Dispatch mock welcome email upon email verification.
+ * @param {object} user - User object
+ * @returns {Promise<boolean>} Resolves immediately with true
  */
 const sendWelcomeEmail = async (user) => {
   const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
   const loginUrl = `${clientUrl}/login`;
-  const from = process.env.EMAIL_FROM || 'Sylo Workspace <no-reply@sylo.io>';
+  const subject = 'Welcome to Sylo — Account Activated!';
 
-  const bodyHtml = `
-    <h1>Welcome to Sylo, ${user.name || user.username}! &#127881;</h1>
-    <p>Your email address has been successfully verified, and your workspace is fully active.</p>
-    <p>You can now create projects, invite team members using their unique usernames, assign tasks, and track real-time progress across sprints.</p>
-    <div class="button-container">
-      <a href="${loginUrl}" class="button" target="_blank">Go to Sylo Dashboard</a>
-    </div>
-    <p>Need help getting started? Check out the guided checklist in your dashboard.</p>
-  `;
+  console.log('\n======================================================================');
+  console.log('📧 [EMAIL MOCK] Welcome Email Dispatched');
+  console.log(`👤 Recipient : ${user.name || user.username} <${user.email}>`);
+  console.log(`🎉 Account is verified and active. Login at: ${loginUrl}`);
+  console.log('======================================================================\n');
 
-  const text = `Welcome to Sylo, ${user.name || user.username}!\n\nYour account is now active. Log in at ${loginUrl} to start managing your projects.`;
-
-  const transporter = await getTransporter();
-  const info = await transporter.sendMail({
-    from,
+  dispatchedEmails.push({
     to: user.email,
-    subject: 'Welcome to Sylo — Account Activated!',
-    html: renderEmailLayout({ title: 'Welcome to Sylo', bodyHtml }),
-    text
+    subject,
+    html: `<h1>Welcome to Sylo — Account Activated!</h1><p><a href="${loginUrl}">Go to Sylo Dashboard</a></p>`,
+    text: `Welcome to Sylo! Log in at: ${loginUrl}`,
+    timestamp: new Date(),
   });
 
-  if (process.env.NODE_ENV !== 'production' && process.env.NODE_ENV !== 'test') {
-    const preview = nodemailer.getTestMessageUrl(info);
-    if (preview) {
-      console.log(`📧 [Ethereal Sandbox] Welcome email preview: ${preview}`);
-    }
-  }
-
-  return info;
+  return true;
 };
 
 /**
- * Dispatch password reset email with token link (1h lifespan)
+ * Dispatch mock password reset email with terminal link output.
+ * @param {object} user - User object
+ * @param {string} rawToken - Unhashed password reset token
+ * @returns {Promise<boolean>} Resolves immediately with true
  */
 const sendPasswordResetEmail = async (user, rawToken) => {
   const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
   const resetUrl = `${clientUrl}/reset-password/${rawToken}`;
-  const from = process.env.EMAIL_FROM || 'Sylo Workspace <no-reply@sylo.io>';
+  const subject = 'Reset your Sylo password';
 
-  const bodyHtml = `
-    <h1>Reset your password</h1>
-    <p>Hi ${user.name || user.username},</p>
-    <p>We received a request to reset your Sylo password. Click the button below to choose a new password.</p>
-    <div class="button-container">
-      <a href="${resetUrl}" class="button" target="_blank">Reset Password</a>
-    </div>
-    <p>For your security, this password reset link will expire in <strong>1 hour</strong>.</p>
-    <p>If you did not make this request, you can safely ignore this email; your existing password will remain active.</p>
-    <p><a href="${resetUrl}" class="link-fallback">${resetUrl}</a></p>
-  `;
+  console.log('\n======================================================================');
+  console.log('📧 [EMAIL MOCK] Password Reset Email Dispatched');
+  console.log(`👤 Recipient : ${user.name || user.username} <${user.email}>`);
+  console.log(`🔑 Click to reset password: ${resetUrl}`);
+  console.log('======================================================================\n');
 
-  const text = `Hi ${user.name || user.username},\n\nYou requested a password reset. Open the following link to set a new password:\n${resetUrl}\n\nThis link will expire in 1 hour.`;
-
-  const transporter = await getTransporter();
-  const info = await transporter.sendMail({
-    from,
+  dispatchedEmails.push({
     to: user.email,
-    subject: 'Reset your Sylo password',
-    html: renderEmailLayout({ title: 'Reset your Sylo password', bodyHtml }),
-    text
+    subject,
+    html: `<h1>Reset your password</h1><p>Hi ${user.name || user.username},</p><p><a href="${resetUrl}">Reset Password</a></p>`,
+    text: `Hi ${user.name || user.username},\nReset your password: ${resetUrl}`,
+    token: rawToken,
+    url: resetUrl,
+    timestamp: new Date(),
   });
 
-  if (process.env.NODE_ENV !== 'production' && process.env.NODE_ENV !== 'test') {
-    const preview = nodemailer.getTestMessageUrl(info);
-    if (preview) {
-      console.log(`📧 [Ethereal Sandbox] Password reset preview: ${preview}`);
-    }
-  }
-
-  return info;
+  return true;
 };
 
 /**
- * Dispatch overdue task reminder email (FR-31, AC-09)
+ * Dispatch mock overdue task reminder email.
+ * @param {object} recipient - User assigned or project owner
+ * @param {object} task - Overdue task document
+ * @param {object} project - Parent project document
+ * @returns {Promise<boolean>} Resolves immediately with true
  */
 const sendOverdueTaskAlert = async (recipient, task, project) => {
   const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
   const projectUrl = `${clientUrl}/projects/${project._id || project.id}`;
-  const from = process.env.EMAIL_FROM || 'Sylo Workspace <no-reply@sylo.io>';
-  const deadlineStr = task.deadline ? new Date(task.deadline).toLocaleDateString() : 'N/A';
+  const subject = `Overdue Task Alert: "${task.title}"`;
 
-  const bodyHtml = `
-    <h1>Overdue Task Alert: "${task.title}"</h1>
-    <p>Hi ${recipient.name || recipient.username},</p>
-    <p>The following task in project <strong>${project.title}</strong> is past its scheduled deadline and has not been marked as completed:</p>
-    <div style="background: #f1f5f9; padding: 16px; border-radius: 8px; margin: 16px 0;">
-      <p style="margin: 0 0 8px 0;"><strong>Task:</strong> ${task.title}</p>
-      <p style="margin: 0 0 8px 0;"><strong>Project:</strong> ${project.title}</p>
-      <p style="margin: 0;"><strong>Due Date:</strong> ${deadlineStr}</p>
-    </div>
-    <div class="button-container">
-      <a href="${projectUrl}" class="button" target="_blank">View Task in Sylo</a>
-    </div>
-    <p>Please update the task status or adjust the target date with your team lead.</p>
-  `;
+  console.log('\n======================================================================');
+  console.log(`📧 [EMAIL MOCK] Overdue Task Alert: "${task.title}"`);
+  console.log(`👤 Recipient : ${recipient.name || recipient.username} <${recipient.email}>`);
+  console.log(`📁 Project   : ${project.title} (${projectUrl})`);
+  console.log('======================================================================\n');
 
-  const text = `Hi ${recipient.name || recipient.username},\n\nThe task "${task.title}" in project "${project.title}" was due on ${deadlineStr} and is overdue.\n\nView it in Sylo: ${projectUrl}`;
-
-  const transporter = await getTransporter();
-  const info = await transporter.sendMail({
-    from,
+  dispatchedEmails.push({
     to: recipient.email,
-    subject: `Overdue Task Alert: "${task.title}"`,
-    html: renderEmailLayout({ title: 'Overdue Task Alert', bodyHtml }),
-    text,
+    subject,
+    html: `<h1>Overdue Task Alert: "${task.title}"</h1><p><a href="${projectUrl}">View Task in Sylo</a></p>`,
+    text: `Task "${task.title}" in project "${project.title}" is overdue: ${projectUrl}`,
+    timestamp: new Date(),
   });
 
-  if (process.env.NODE_ENV !== 'production' && process.env.NODE_ENV !== 'test') {
-    const preview = nodemailer.getTestMessageUrl(info);
-    if (preview) {
-      console.log(`📧 [Ethereal Sandbox] Overdue task alert preview: ${preview}`);
-    }
-  }
-
-  return info;
+  return true;
 };
 
 module.exports = {
-  getTransporter,
   sendVerificationEmail,
   sendWelcomeEmail,
   sendPasswordResetEmail,

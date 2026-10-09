@@ -652,6 +652,21 @@ describe('Phase 2 Project & Task Engine Integration Tests (TG-6: AC-03 to AC-13)
         .set('Authorization', `Bearer ${collabToken}`);
 
       expect(accessRes.status).toBe(403);
+
+      // SEC-01: Sarah can no longer view the task either (403 Forbidden)
+      const taskAccessRes = await request(app)
+        .get(`/api/tasks/${taskId}`)
+        .set('Authorization', `Bearer ${collabToken}`);
+
+      expect(taskAccessRes.status).toBe(403);
+      expect(taskAccessRes.body.message).toContain('not a member');
+
+      // SEC-01: Outsider cannot view the task (403 Forbidden)
+      const outsiderAccessRes = await request(app)
+        .get(`/api/tasks/${taskId}`)
+        .set('Authorization', `Bearer ${outsiderToken}`);
+
+      expect(outsiderAccessRes.status).toBe(403);
     });
   });
 

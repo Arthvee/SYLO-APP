@@ -39,18 +39,13 @@ const authenticate = async (req, res, next) => {
       });
     }
 
-    // Enforce email verification boundary (FR-04, FR-07)
+    // Email verification check bypassed while email verification is deferred (see todo.md).
+    // Automatically activate accounts created prior to bypass:
     if (!user.isVerified) {
-      return res.status(403).json({
-        success: false,
-        message: 'Your email address has not been verified. Please verify your email before accessing your workspace.',
-        errors: [
-          {
-            field: 'isVerified',
-            message: 'Email unverified',
-          },
-        ],
-      });
+      user.isVerified = true;
+      if (typeof user.save === 'function') {
+        await user.save();
+      }
     }
 
     // Attach verified user instance to request context

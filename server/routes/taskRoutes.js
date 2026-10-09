@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const authenticate = require('../middleware/auth');
 const {
+  requireTaskMember,
   requireTaskAdmin,
   requireTaskAssigneeOrAdmin,
 } = require('../middleware/projectAuth');
@@ -20,7 +21,7 @@ const {
 router.use(authenticate);
 
 // Individual Task Mutation Endpoints
-router.get('/:id', getTaskById);
+router.get('/:id', requireTaskMember, getTaskById);
 router.put('/:id', requireTaskAdmin, updateTaskValidator, updateTask);
 router.delete('/:id', requireTaskAdmin, deleteTask);
 router.patch('/:id/status', requireTaskAssigneeOrAdmin, updateTaskStatusValidator, updateTaskStatus);

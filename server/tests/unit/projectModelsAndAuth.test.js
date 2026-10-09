@@ -6,6 +6,7 @@ const {
   requireProjectAdmin,
   requireTaskAdmin,
   requireTaskAssigneeOrAdmin,
+  requireTaskMember,
 } = require('../../middleware/projectAuth');
 
 describe('Project & Task Models and RBAC Middleware Unit Tests (TG-1 & TG-2)', () => {
@@ -269,6 +270,81 @@ describe('Project & Task Models and RBAC Middleware Unit Tests (TG-1 & TG-2)', (
             message: expect.stringContaining('tasks assigned to you'),
           })
         );
+        expect(mockNext).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('requireTaskMember', () => {
+      it('RBAC-09: should permit Project Owner to access task details', async () => {
+        mockReq.params.id = 'task_123';
+        mockReq.user._id = ownerId;
+        Task.findById.mockResolvedValue({
+          _id: 'task_123',
+          project: 'proj_123',
+        });
+        Project.findById.mockResolvedValue({
+          _id: 'proj_123',
+          owner: ownerId,
+          collaborators: [collaboratorId],
+        });
+
+        await requireTaskMember(mockReq, mockRes, mockNext);
+
+        expect(mockNext).toHaveBeenCalled();
+        expect(mockReq.isProjectAdmin).toBe(true);
+      });
+
+      it('RBAC-10: should permit Project Collaborator to access task details', async () => {
+        mockReq.params.id = 'task_123';
+        mockReq.user._id = collaboratorId;
+        Task.findById.mockResolvedValue({
+          _id: 'task_123',
+          project: 'proj_123',
+        });
+        Project.findById.mockResolvedValue({
+          _id: 'proj_123',
+          owner: ownerId,
+          collaborators: [collaboratorId],
+        });
+
+        await requireTaskMember(mockReq, mockRes, mockNext);
+
+        expect(mockNext).toHaveBeenCalled();
+        expect(mockReq.isProjectAdmin).toBe(false);
+      });
+
+      it('RBAC-11: should reject non-member with 403 Forbidden', async () => {
+        mockReq.params.id = 'task_123';
+        mockReq.user._id = outsiderId;
+        Task.findById.mockResolvedValue({
+          _id: 'task_123',
+          project: 'proj_123',
+        });
+        Project.findById.mockResolvedValue({
+          _id: 'proj_123',
+          owner: ownerId,
+          collaborators: [collaboratorId],
+        });
+
+        await requireTaskMember(mockReq, mockRes, mockNext);
+
+        expect(mockRes.status).toHaveBeenCalledWith(403);
+        expect(mockRes.json).toHaveBeenCalledWith(
+          expect.objectContaining({
+            success: false,
+            message: expect.stringContaining('not a member'),
+          })
+        );
+        expect(mockNext).not.toHaveBeenCalled();
+      });
+
+      it('RBAC-12: should return 404 if task not found', async () => {
+        mockReq.params.id = 'non_existent_task';
+        Task.findById.mockResolvedValue(null);
+
+        await requireTaskMember(mockReq, mockRes, mockNext);
+
+        expect(mockRes.status).toHaveBeenCalledWith(404);
         expect(mockNext).not.toHaveBeenCalled();
       });
     });

@@ -11,9 +11,12 @@ const handleValidationErrors = (req, res, next) => {
       message: err.msg,
     }));
 
+    const primaryMessage =
+      formattedErrors.length > 0 ? formattedErrors[0].message : 'Validation failed';
+
     return res.status(400).json({
       success: false,
-      message: 'Validation failed',
+      message: primaryMessage,
       errors: formattedErrors,
     });
   }
@@ -32,9 +35,9 @@ const registerValidator = [
   body('username')
     .trim()
     .notEmpty().withMessage('Username is required')
+    .toLowerCase()
     .isLength({ min: 3, max: 20 }).withMessage('Username must be between 3 and 20 characters')
-    .matches(/^[a-z0-9_-]{3,20}$/).withMessage('Username may only contain lowercase letters, numbers, underscores, and hyphens')
-    .toLowerCase(),
+    .matches(/^[a-z0-9_-]{3,20}$/).withMessage('Username may only contain lowercase letters, numbers, underscores, and hyphens'),
 
   body('email')
     .trim()

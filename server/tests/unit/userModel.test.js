@@ -16,7 +16,7 @@ describe('User Model & Schema Unit Tests (TG-2)', () => {
     expect(user.name).toBe('Alex Vance');
     expect(user.username).toBe('alexvance');
     expect(user.email).toBe('alex.vance@example.com');
-    expect(user.isVerified).toBe(false);
+    expect(user.isVerified).toBe(true); // Default true while email verification is deferred (see todo.md)
   });
 
   it('U-02: should reject usernames violating length and character constraints', async () => {

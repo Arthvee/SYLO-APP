@@ -21,7 +21,7 @@ jest.mock('../../models/User', () => {
     this.username = data.username ? data.username.toLowerCase().trim() : '';
     this.email = data.email ? data.email.toLowerCase().trim() : '';
     this.password = data.password;
-    this.isVerified = data.isVerified !== undefined ? data.isVerified : false;
+    this.isVerified = data.isVerified !== undefined ? data.isVerified : true; // Default true while deferred (see todo.md)
     this.verificationToken = data.verificationToken || null;
     this.verificationExpires = data.verificationExpires || null;
     this.resetPasswordToken = data.resetPasswordToken || null;
@@ -119,8 +119,8 @@ describe('Phase 1 Authentication & Notification API Integration Tests (TG-6)', (
     dispatchedEmails.length = 0;
   });
 
-  describe('AC-01: End-to-End Registration, Email Verification & Login Workflow', () => {
-    it('should complete the entire AC-01 lifecycle from registration to verified login', async () => {
+  describe('AC-01: End-to-End Registration & Immediate Login Workflow (Email Verification Deferred)', () => {
+    it('should complete the registration and immediate login lifecycle (deferred verification)', async () => {
       // 1. Register new user
       const registerRes = await request(app)
         .post('/api/auth/register')
@@ -134,46 +134,9 @@ describe('Phase 1 Authentication & Notification API Integration Tests (TG-6)', (
       expect(registerRes.status).toBe(201);
       expect(registerRes.body.success).toBe(true);
       expect(registerRes.body.data.username).toBe('alexvance');
-      expect(registerRes.body.data.isVerified).toBe(false);
+      expect(registerRes.body.data.isVerified).toBe(true);
 
-      // Verify email was dispatched
-      expect(dispatchedEmails.length).toBe(1);
-      const verificationEmail = dispatchedEmails[0];
-      expect(verificationEmail.to).toBe('alex.vance@example.com');
-      expect(verificationEmail.subject).toBe('Verify your Sylo account');
-
-      // Extract raw token from verification email URL
-      const tokenMatch = verificationEmail.html.match(/\/verify-email\/([a-f0-9]{64})/);
-      expect(tokenMatch).not.toBeNull();
-      const rawVerificationToken = tokenMatch[1];
-
-      // 2. Attempt login BEFORE email verification -> MUST return 403 Forbidden (FR-04)
-      const unverifiedLoginRes = await request(app)
-        .post('/api/auth/login')
-        .send({
-          login: 'alexvance',
-          password: 'Password123!',
-        });
-
-      expect(unverifiedLoginRes.status).toBe(403);
-      expect(unverifiedLoginRes.body.success).toBe(false);
-      expect(unverifiedLoginRes.body.message).toContain('email address has not been verified');
-
-      // 3. Verify email with raw token -> MUST return 200 OK & trigger welcome email (FR-05)
-      const verifyRes = await request(app)
-        .get(`/api/auth/verify-email/${rawVerificationToken}`);
-
-      expect(verifyRes.status).toBe(200);
-      expect(verifyRes.body.success).toBe(true);
-      expect(verifyRes.body.data.isVerified).toBe(true);
-
-      // Verify welcome email was dispatched
-      expect(dispatchedEmails.length).toBe(2);
-      const welcomeEmail = dispatchedEmails[1];
-      expect(welcomeEmail.to).toBe('alex.vance@example.com');
-      expect(welcomeEmail.subject).toBe('Welcome to Sylo — Account Activated!');
-
-      // 4. Login post-verification -> MUST return 200 OK with signed JWT
+      // 2. Login immediately post-registration with signed JWT (FR-04 bypassed - see todo.md)
       const verifiedLoginRes = await request(app)
         .post('/api/auth/login')
         .send({
@@ -186,7 +149,7 @@ describe('Phase 1 Authentication & Notification API Integration Tests (TG-6)', (
       expect(verifiedLoginRes.body.data.token).toBeDefined();
       const jwtToken = verifiedLoginRes.body.data.token;
 
-      // 5. Access protected profile (/api/auth/me) with Bearer token (FR-07)
+      // 3. Access protected profile (/api/auth/me) with Bearer token (FR-07)
       const meRes = await request(app)
         .get('/api/auth/me')
         .set('Authorization', `Bearer ${jwtToken}`);

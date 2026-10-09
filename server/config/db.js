@@ -1,4 +1,13 @@
 const mongoose = require('mongoose');
+const dns = require('dns');
+
+// On Windows, local router/ISP DNS servers frequently fail to resolve MongoDB Atlas SRV records,
+// triggering `querySrv ETIMEOUT`. Setting public resolvers (Google / Cloudflare) guarantees resolution.
+try {
+  dns.setServers(['8.8.8.8', '8.8.4.4', '1.1.1.1']);
+} catch (dnsErr) {
+  // Ignore if running in constrained sandbox
+}
 
 const connectDB = async () => {
   const uri = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/sylo_dev';

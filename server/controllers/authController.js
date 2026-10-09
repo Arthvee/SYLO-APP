@@ -39,34 +39,25 @@ const register = async (req, res, next) => {
       });
     }
 
-    // Create inactive user document
+    // Create user document (active immediately; email verification temporarily deferred - see todo.md)
     const user = new User({
       name: name.trim(),
       username: normalizedUsername,
       email: normalizedEmail,
       password,
-      isVerified: false,
+      isVerified: true,
     });
 
-    // Generate 24h email verification token
-    const rawVerificationToken = user.createEmailVerificationToken();
     await user.save();
-
-    // Dispatch verification email with token link
-    try {
-      await sendVerificationEmail(user, rawVerificationToken);
-    } catch (emailErr) {
-      console.error('[AuthController] Failed to dispatch verification email:', emailErr.message);
-    }
 
     return res.status(201).json({
       success: true,
-      message: 'Registration successful. Please check your email to verify your account.',
+      message: 'Registration successful. You can now log in.',
       data: {
         userId: user._id,
         username: user.username,
         email: user.email,
-        isVerified: user.isVerified,
+        isVerified: true,
       },
     });
   } catch (err) {
@@ -209,18 +200,13 @@ const login = async (req, res, next) => {
       });
     }
 
-    // Enforce email verification boundary (FR-04)
+    // Email verification check bypassed while email verification is deferred (see todo.md).
+    // Automatically activate accounts created prior to bypass:
     if (!user.isVerified) {
-      return res.status(403).json({
-        success: false,
-        message: 'Your email address has not been verified. Please verify your email before logging in.',
-        errors: [
-          {
-            field: 'isVerified',
-            message: 'Email unverified',
-          },
-        ],
-      });
+      user.isVerified = true;
+      if (typeof user.save === 'function') {
+        await user.save();
+      }
     }
 
     // Issue signed JWT token

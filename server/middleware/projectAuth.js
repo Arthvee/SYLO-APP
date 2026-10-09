@@ -160,9 +160,60 @@ const requireTaskAssigneeOrAdmin = async (req, res, next) => {
   }
 };
 
+/**
+ * Ensures authenticated user is a confirmed member (Owner or Collaborator) of the task's parent project
+ * PRD Mapping: FR-20, BR-09
+ */
+const requireTaskMember = async (req, res, next) => {
+  try {
+    const taskId = req.params.id;
+    const task = await Task.findById(taskId);
+
+    if (!task) {
+      return res.status(404).json({
+        success: false,
+        message: 'Task not found',
+        errors: [],
+      });
+    }
+
+    const project = await Project.findById(task.project);
+    if (!project) {
+      return res.status(404).json({
+        success: false,
+        message: 'Associated project not found',
+        errors: [],
+      });
+    }
+
+    const userId = req.user._id.toString();
+    const ownerId = project.owner._id ? project.owner._id.toString() : project.owner.toString();
+    const isOwner = ownerId === userId;
+    const isCollaborator = project.collaborators.some(
+      (collabId) => (collabId._id ? collabId._id.toString() : collabId.toString()) === userId
+    );
+
+    if (!isOwner && !isCollaborator) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. You are not a member of this project.',
+        errors: [],
+      });
+    }
+
+    req.task = task;
+    req.project = project;
+    req.isProjectAdmin = isOwner;
+    next();
+  } catch (err) {
+    next(err);
+  }
+};
+
 module.exports = {
   requireProjectMember,
   requireProjectAdmin,
   requireTaskAdmin,
   requireTaskAssigneeOrAdmin,
+  requireTaskMember,
 };

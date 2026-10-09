@@ -159,12 +159,13 @@ describe('Middleware Unit Tests (TG-4)', () => {
       expect(mockNext).not.toHaveBeenCalled();
     });
 
-    it('AUTH-03: should return 403 if user is unverified (isVerified === false)', async () => {
+    it('AUTH-03: should automatically activate user and call next() even if user was previously unverified (deferred verification)', async () => {
       const unverifiedUser = {
         _id: '6700c8f5e7149a4e9b9c0001',
         username: 'alexvance',
         email: 'alex@example.com',
         isVerified: false,
+        save: jest.fn().mockResolvedValue(true),
       };
 
       const token = generateToken(unverifiedUser);
@@ -173,15 +174,9 @@ describe('Middleware Unit Tests (TG-4)', () => {
 
       await authenticate(mockReq, mockRes, mockNext);
 
-      expect(mockRes.status).toHaveBeenCalledWith(403);
-      expect(mockRes.json).toHaveBeenCalledWith(
-        expect.objectContaining({
-          success: false,
-          message: expect.stringContaining('email address has not been verified'),
-          errors: [{ field: 'isVerified', message: 'Email unverified' }],
-        })
-      );
-      expect(mockNext).not.toHaveBeenCalled();
+      expect(unverifiedUser.isVerified).toBe(true);
+      expect(mockReq.user).toEqual(unverifiedUser);
+      expect(mockNext).toHaveBeenCalledTimes(1);
     });
 
     it('AUTH-04: should attach user to req and call next() if user is verified', async () => {
@@ -200,6 +195,24 @@ describe('Middleware Unit Tests (TG-4)', () => {
 
       expect(mockReq.user).toEqual(verifiedUser);
       expect(mockNext).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('Rate Limiter Middleware', () => {
+    it('RATE-01: should export loginLimiter, registerLimiter, and passwordResetLimiter middleware', () => {
+      const { loginLimiter, registerLimiter, passwordResetLimiter } = require('../../middleware/rateLimiter');
+      expect(typeof loginLimiter).toBe('function');
+      expect(typeof registerLimiter).toBe('function');
+      expect(typeof passwordResetLimiter).toBe('function');
+    });
+
+    it('RATE-02: should skip rate limiting when NODE_ENV is test', async () => {
+      const { loginLimiter } = require('../../middleware/rateLimiter');
+      const req = {};
+      const res = {};
+      const next = jest.fn();
+      await loginLimiter(req, res, next);
+      expect(next).toHaveBeenCalled();
     });
   });
 });

@@ -19,15 +19,21 @@ const {
   resendVerificationValidator,
 } = require('../middleware/validate');
 
+const {
+  loginLimiter,
+  registerLimiter,
+  passwordResetLimiter,
+} = require('../middleware/rateLimiter');
+
 const authenticate = require('../middleware/auth');
 
 // Public endpoints
-router.post('/register', registerValidator, register);
+router.post('/register', registerLimiter, registerValidator, register);
 router.get('/verify-email/:token', verifyEmail);
-router.post('/resend-verification', resendVerificationValidator, resendVerification);
-router.post('/login', loginValidator, login);
-router.post('/forgot-password', forgotPasswordValidator, forgotPassword);
-router.post('/reset-password/:token', resetPasswordValidator, resetPassword);
+router.post('/resend-verification', passwordResetLimiter, resendVerificationValidator, resendVerification);
+router.post('/login', loginLimiter, loginValidator, login);
+router.post('/forgot-password', passwordResetLimiter, forgotPasswordValidator, forgotPassword);
+router.post('/reset-password/:token', passwordResetLimiter, resetPasswordValidator, resetPassword);
 
 // Protected endpoint (Requires valid JWT Bearer header)
 router.get('/me', authenticate, getMe);
