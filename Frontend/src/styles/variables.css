@@ -50,7 +50,7 @@ h6 { font-size: 1rem; }
 .progress-bar {
   width: 100%;
   height: 0.5rem;
-  background-color: var(--border-color);
+  background-color: #dfeafe;
   border-radius: 9999px;
   overflow: hidden;
   margin: var(--spacing-sm) 0;
@@ -58,7 +58,7 @@ h6 { font-size: 1rem; }
 
 .progress-fill {
   height: 100%;
-  background-color: var(--primary-color);
+  background: linear-gradient(90deg, var(--primary-color), #60a5fa);
   transition: width 0.3s ease;
 }
 
@@ -105,8 +105,8 @@ h6 { font-size: 1rem; }
 }
 
 .badge-info {
-  background-color: #cffafe;
-  color: #0c4a6e;
+  background-color: #dbeafe;
+  color: #1d4ed8;
 }
 
 /* Task status */
@@ -121,8 +121,8 @@ h6 { font-size: 1rem; }
 }
 
 .status-todo {
-  background-color: #f3f4f6;
-  color: #6b7280;
+  background-color: #f1f5f9;
+  color: #475569;
 }
 
 .status-in-progress {

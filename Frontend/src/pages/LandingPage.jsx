@@ -55,7 +55,7 @@ const LandingPage = () => {
             </main>
 
             <footer className="landing-footer">
-                <p>&copy; 2024 SYLO. All rights reserved.</p>
+                <p>&copy; 2026 SYLO. All rights reserved.</p>
             </footer>
         </div>
     );

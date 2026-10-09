@@ -187,6 +187,129 @@
   flex-wrap: wrap;
 }
 
+.projects-section,
+.task-list,
+.list-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.list-item,
+.task-card,
+.project-summary-card,
+.project-sidebar-card,
+.card-item {
+  background: white;
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  padding: 1.5rem;
+}
+
+.list-item-header,
+.task-card-header,
+.project-summary-header,
+.section-header-row,
+.meta-row,
+.project-meta-row,
+.inline-actions,
+.task-actions,
+.member-item,
+.task-meta-grid,
+.info-grid,
+.detail-grid,
+.form-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.meta-row,
+.project-meta-row,
+.task-meta-grid,
+.info-grid {
+  flex-wrap: wrap;
+}
+
+.project-title-link {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-decoration: none;
+}
+
+.project-title-link:hover {
+  color: var(--primary-color);
+  text-decoration: none;
+}
+
+.small-text {
+  font-size: 0.8rem;
+}
+
+.inline-form {
+  display: flex;
+  gap: 0.75rem;
+  margin: 1rem 0;
+}
+
+.inline-form input {
+  flex: 1;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.project-summary-card,
+.project-sidebar-card {
+  min-height: 100%;
+}
+
+.member-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.member-item {
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.task-card {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.task-project-name {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+.task-meta-grid,
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.75rem 1.25rem;
+}
+
+.task-actions,
+.inline-actions,
+.form-actions {
+  flex-wrap: wrap;
+}
+
+select[multiple] {
+  min-height: 120px;
+}
+
 @media (max-width: 768px) {
   .dashboard-layout {
     grid-template-columns: 1fr;
@@ -246,5 +369,22 @@
 
   .actions-grid a {
     width: 100%;
+  }
+
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .list-item-header,
+  .task-card-header,
+  .project-summary-header,
+  .section-header-row,
+  .member-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .inline-form {
+    flex-direction: column;
   }
 }
