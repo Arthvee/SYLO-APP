@@ -39,9 +39,11 @@ export const projects = [
     ],
   },
 
-  export function updateProjectTasks(id, tasks) 
+
+]
+
+ export function updateProjectTasks(id, tasks) 
   {
     const project = projects.find((p) => p.id === id)
     if (project) project.tasks = tasks
   }
-]

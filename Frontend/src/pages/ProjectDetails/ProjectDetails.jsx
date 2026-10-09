@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { projects, updateProjectTasks } from '../../data/mockData'
 import { calculateProgress, getProjectState } from '../../utils/calculateProgress'
@@ -18,6 +18,12 @@ function ProjectDetails() {
   const [tab, setTab] = useState('Tasks')
   const [newTitle, setNewTitle] = useState('')
   const [newAssignee, setNewAssignee] = useState('')
+
+  useEffect(() => {
+    if (project) {
+      setTasks(project.tasks)
+    }
+  }, [id, project])
 
   if (!project) {
     return (
