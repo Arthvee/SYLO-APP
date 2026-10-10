@@ -12,12 +12,15 @@ const options = {
                 name: "SYLO Team"
             }
         },
-        servers: [
-            {
-                url: process.env.CLIENT_URL || "http://localhost:5000",
-                description: "Development Server"
-            }
-        ],
+
+    servers: [
+    {
+        url: process.env.API_URL || "http://localhost:5000",
+        description: process.env.NODE_ENV === "production"
+            ? "Production Server"
+            : "Development Server"
+    }
+],
         components: {
             securitySchemes: {
                 bearerAuth: {
