@@ -27,6 +27,7 @@
     "mongoose": "^9.10.3",
     "node-cron": "^3.0.3",
     "nodemailer": "^6.9.6",
+    "resend": "^6.32.1",
     "swagger-jsdoc": "^6.3.0",
     "swagger-ui-express": "^5.0.1"
   }
