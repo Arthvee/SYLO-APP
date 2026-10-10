@@ -36,7 +36,7 @@ const authController = require("../controllers/authController");
  *                 example: password123
  *     responses:
  *       201:
- *         description: User registered successfully
+ *         description: User registered successfully and can log in immediately
  *       400:
  *         description: Validation error or invalid input
  *       409:
@@ -69,8 +69,6 @@ router.post("/register", authController.register);
  *         description: Login successful
  *       401:
  *         description: Invalid credentials
- *       403:
- *         description: Email not verified
  */
 router.post("/login", authController.login);
 

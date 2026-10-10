@@ -34,40 +34,19 @@ exports.register = async (req, res, next) => {
         // Hash password
         const hashedPassword = await bcryptjs.hash(password, 10);
 
-        // Generate email verification token
-        const { token, hashedToken } = generateTokenHash();
-
-        // Create user
+        // Create user and allow immediate login without verification requirement
         const user = await User.create({
             firstName,
             lastName,
             username: username.toLowerCase(),
             email: email.toLowerCase(),
             password: hashedPassword,
-            emailVerificationToken: hashedToken,
-            emailVerificationExpires: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
+            isEmailVerified: true
         });
-
-        // Send verification email
-        try {
-            await sendEmail({
-                email: user.email,
-                subject: "Email Verification - SYLO",
-                html: `
-                    <h2>Welcome to SYLO!</h2>
-                    <p>Please verify your email to complete registration.</p>
-                    <p><a href="${process.env.CLIENT_URL}/verify-email?token=${token}&email=${user.email}">Verify Email</a></p>
-                    <p>This link expires in 24 hours.</p>
-                `
-            });
-        } catch (error) {
-            console.error("Failed to send verification email:", error.message);
-            // Don't fail registration if email send fails
-        }
 
         res.status(201).json({
             success: true,
-            message: "Registration successful. Please check your email to verify your account.",
+            message: "Registration successful. You can now log in.",
             user: {
                 id: user._id,
                 firstName: user.firstName,
@@ -95,11 +74,6 @@ exports.login = async (req, res, next) => {
 
         if (!user) {
             return next(new ErrorHandler("Invalid email or password", 401));
-        }
-
-        // Check if email is verified
-        if (!user.isEmailVerified) {
-            return next(new ErrorHandler("Please verify your email before logging in", 403));
         }
 
         // Compare password
