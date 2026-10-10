@@ -48,11 +48,14 @@ app.use((err, req, res, next) => {
     });
 });
 
-// Start server
+// Start server only when running app.js directly
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-    console.log(`SYLO Server running on port ${PORT}`);
-    console.log(`Swagger Docs: http://localhost:${PORT}/api/docs`);
-});
+
+if (require.main === module) {
+    app.listen(PORT, () => {
+        console.log(`SYLO Server running on port ${PORT}`);
+        console.log(`Swagger Docs: http://localhost:${PORT}/api/docs`);
+    });
+}
 
 module.exports = app;
